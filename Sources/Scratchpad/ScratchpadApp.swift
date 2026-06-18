@@ -4,6 +4,7 @@ import AppKit
 @main
 struct ScratchpadApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    @AppStorage(AppStorageKey.autoSaveFromClipboard) private var autoSaveFromClipboard = true
 
     var body: some Scene {
         WindowGroup {
@@ -14,6 +15,9 @@ struct ScratchpadApp: App {
         .commands {
             CommandGroup(replacing: .newItem) { }
             CommandGroup(replacing: .saveItem) { }
+            CommandGroup(after: .pasteboard) {
+                Toggle("Auto Save From Clipboard", isOn: $autoSaveFromClipboard)
+            }
         }
     }
 }
@@ -54,6 +58,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         if let editor = findTextView(in: window.contentView) {
             window.makeFirstResponder(editor)
         }
+        NotificationCenter.default.post(name: .scratchpadShouldSyncClipboard, object: nil)
     }
 
     @MainActor private func findTextView(in view: NSView?) -> NSTextView? {

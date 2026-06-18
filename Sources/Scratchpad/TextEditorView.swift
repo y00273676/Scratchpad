@@ -69,6 +69,7 @@ struct TextEditorView: NSViewRepresentable {
             }
         }
         context.coordinator.textView = textView
+        textView.string = text
 
         scrollView.documentView = textView
 
