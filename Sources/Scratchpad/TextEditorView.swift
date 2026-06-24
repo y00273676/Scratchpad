@@ -28,6 +28,8 @@ private final class FocusableTextView: NSTextView {
 struct TextEditorView: NSViewRepresentable {
     @Binding var text: String
     @Binding var isEditing: Bool
+    @Binding var suppressUserEditTracking: Bool
+    var onUserEdit: () -> Void = {}
 
     func makeNSView(context: Context) -> NSScrollView {
         let scrollView = NSScrollView()
@@ -109,6 +111,9 @@ struct TextEditorView: NSViewRepresentable {
         func textDidChange(_ notification: Notification) {
             guard let textView = notification.object as? NSTextView else { return }
             parent.text = textView.string
+            if !parent.suppressUserEditTracking {
+                parent.onUserEdit()
+            }
         }
     }
 }

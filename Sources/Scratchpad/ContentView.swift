@@ -5,10 +5,17 @@ struct ContentView: View {
     @AppStorage(AppStorageKey.autoSaveFromClipboard) private var autoSaveFromClipboard = true
     @State private var text: String = ""
     @State private var isEditing: Bool = false
+    @State private var hasUserModifiedContent = false
+    @State private var suppressUserEditTracking = false
     @State private var lastAppliedClipboardChangeCount = -1
 
     var body: some View {
-        TextEditorView(text: $text, isEditing: $isEditing)
+        TextEditorView(
+            text: $text,
+            isEditing: $isEditing,
+            suppressUserEditTracking: $suppressUserEditTracking,
+            onUserEdit: { hasUserModifiedContent = true }
+        )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background {
                 WindowTitleBarInstaller()
@@ -57,13 +64,29 @@ struct ContentView: View {
 
         guard let clipText = ClipboardReader.latestString(from: pasteboard) else { return }
 
-        if clipText == text {
+        switch ClipboardSyncPolicy.shouldApply(
+            clipboardText: clipText,
+            editorText: text,
+            isEditing: isEditing,
+            hasUserModifiedContent: hasUserModifiedContent
+        ) {
+        case .alreadySynced:
             lastAppliedClipboardChangeCount = changeCount
-            return
+        case .apply:
+            applyClipboard(clipText, changeCount: changeCount)
+        case .skipUserContent:
+            break
         }
+    }
 
+    private func applyClipboard(_ clipText: String, changeCount: Int) {
+        suppressUserEditTracking = true
+        hasUserModifiedContent = false
         lastAppliedClipboardChangeCount = changeCount
         text = clipText
+        DispatchQueue.main.async {
+            suppressUserEditTracking = false
+        }
     }
 }
 
